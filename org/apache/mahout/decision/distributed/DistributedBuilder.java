@@ -26,7 +26,8 @@ public class DistributedBuilder implements TreeBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(DistributedBuilder.class);
 
-    private Integer threshold;
+    // set the threshold to 25 by default
+    private Integer threshold = 25;
 
     private String outputDirName;
 
@@ -64,7 +65,11 @@ public class DistributedBuilder implements TreeBuilder {
             return new Leaf(data.get(0).getLabel());
         }
 
-        int[] attributes = data.getDataset();
+        int[] attributes = data.extractLabels();
+
+        if (data.size() > threshold) {
+            // todo: send off to hadoop
+        }
 
         // find the best split
         Split best = null;

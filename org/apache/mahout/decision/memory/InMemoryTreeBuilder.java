@@ -1,5 +1,6 @@
 package org.apache.mahout.decision.memory;
 
+import org.apache.mahout.df.builder.TreeBuilder;
 import org.apache.mahout.df.data.Data;
 import org.apache.mahout.df.data.Instance;
 import org.apache.mahout.df.data.conditions.Condition;
@@ -14,14 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mvid
- * Date: Nov 20, 2010
- * Time: 12:44:11 AM
- * To change this template use File | Settings | File Templates.
- */
-public class InMemoryTreeBuilder {
+public class InMemoryTreeBuilder implements TreeBuilder{
 
     private static final Logger log = LoggerFactory.getLogger(InMemoryTreeBuilder.class);
 
@@ -47,7 +41,6 @@ public class InMemoryTreeBuilder {
         outputDirName = name;
     }
 
-    @Override
     public Node build(Random rng, Data data) {
         if (selected == null) {
             selected = new boolean[data.getDataset().nbAttributes()];
@@ -63,7 +56,7 @@ public class InMemoryTreeBuilder {
             return new Leaf(data.get(0).getLabel());
         }
 
-        int[] attributes;
+        int[] attributes = data.extractLabels();
 
         // find the best split
         Split best = null;

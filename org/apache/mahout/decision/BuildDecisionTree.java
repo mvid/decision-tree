@@ -12,19 +12,29 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.common.CommandLineUtil;
 import org.apache.mahout.decision.distributed.DistributedBuilder;
+import org.apache.mahout.decision.distributed.NodeExpander;
+import org.apache.mahout.decision.split.equidepth.EquiDepthHistogramIgSplit;
 import org.apache.mahout.df.DFUtils;
 import org.apache.mahout.df.data.Data;
 import org.apache.mahout.df.data.DataLoader;
 import org.apache.mahout.df.data.Dataset;
 import org.apache.mahout.df.node.Node;
+import org.apache.mahout.df.split.IgSplit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Random;
 
 public class BuildDecisionTree extends Configured implements Tool {
 
@@ -39,6 +49,8 @@ public class BuildDecisionTree extends Configured implements Tool {
     private Integer height;
 
     private Integer threshold;
+
+    private Queue<Node> mrQueue = new LinkedList<Node>();
 
     public static void main(String[] args) throws Exception {
         ToolRunner.run(new Configuration(), new BuildDecisionTree(), args);
@@ -112,27 +124,39 @@ public class BuildDecisionTree extends Configured implements Tool {
         return 0;
     }
 
-    private void buildTree() throws IOException {
+    private void buildTree() throws IOException, ClassNotFoundException, InterruptedException {
         // make sure the output path does not exist
         FileSystem ofs = outputPath.getFileSystem(getConf());
         if (ofs.exists(outputPath)) {
-          log.error("Output path already exists");
-          return;
+            log.error("Output path already exists");
+            return;
         }
 
-        
-
-        DistributedBuilder distributedBuilder = new DistributedBuilder();
-        distributedBuilder.setThreshold(threshold);
-        
         Dataset dataset = Dataset.load(getConf(), datasetPath);
+        long dataSize = dataset.nbInstances();
 
-        distributedBuilder.setOutputDirName(outputPath.getName());
+        // use an equidepth histogram splitter
+        IgSplit edhSplit = new EquiDepthHistogramIgSplit(dataset);
 
         log.info("Building the tree...");
         long time = System.currentTimeMillis();
+        
+        Node initialRoot = new UnknownNode();
 
-        Node tree = distributedBuilder.build();
+        Configuration conf = new Configuration();
+        conf.set("treePath", outputPath.toString());
+
+        Job job = new Job(conf, "MRDT - Expanding Root Node");
+        job.setMapperClass(NodeExpander.Map.class);
+        job.setReducerClass(NodeExpander.Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, datasetPath);
+        FileOutputFormat.setOutputPath(job, outputPath);
+
+        job.waitForCompletion(true);
 
         time = System.currentTimeMillis() - time;
         log.info("Build Time: {}", DFUtils.elapsedTime(time));
@@ -140,15 +164,6 @@ public class BuildDecisionTree extends Configured implements Tool {
         // store the decision tree in the output path
         Path treePath = new Path(outputPath, "tree.seq");
         log.info("Storing the tree in: " + treePath);
-        DFUtils.storeWritable(getConf(), treePath, tree);
+        // DFUtils.storeWritable(getConf(), treePath, tree); todo
     }
-//
-//    protected static Data loadData(Configuration conf, Path dataPath, Dataset dataset) throws IOException {
-//        log.info("Loading the data...");
-//        FileSystem fs = dataPath.getFileSystem(conf);
-//        Data data = DataLoader.loadData(dataset, fs, dataPath);
-//        log.info("Data Loaded");
-//
-//        return data;
-//    }
 }
