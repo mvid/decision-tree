@@ -21,7 +21,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 
