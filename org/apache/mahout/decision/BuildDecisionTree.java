@@ -140,11 +140,12 @@ public class BuildDecisionTree extends Configured implements Tool {
 
         log.info("Building the tree...");
         long time = System.currentTimeMillis();
-        
-        Node initialRoot = new UnknownNode();
 
         Configuration conf = new Configuration();
         conf.set("treePath", outputPath.toString());
+
+        Node initialRoot = new UnknownNode();
+        DFUtils.storeWritable(conf, outputPath, initialRoot);
 
         Job job = new Job(conf, "MRDT - Expanding Root Node");
         job.setMapperClass(NodeExpander.Map.class);
