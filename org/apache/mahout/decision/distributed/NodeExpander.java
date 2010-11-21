@@ -4,6 +4,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -15,12 +16,12 @@ import java.io.IOException;
 
 public class NodeExpander {
 
-    public class Map extends Mapper <Text, Text, Split, DoubleWritable> {
+    public class Map extends Mapper <LongWritable, Text, Split, DoubleWritable> {
 
         private Node tree;
         private SparseMatrix matrix;
 
-        protected void setup(Mapper.Context context) throws IOException {
+        protected void setup(Context context) throws IOException {
             Path treePath = new Path(context.getConfiguration().get("treePath"));
             FileSystem fileSystem = FileSystem.get(context.getConfiguration());
             FSDataInputStream in = fileSystem.open(treePath);
@@ -31,12 +32,18 @@ public class NodeExpander {
             fileSystem.close();
         }
 
-        public void map(Text record, Text value, Context context) {
+        public void map(LongWritable id, Text record, Context context) throws IOException, InterruptedException {
+            context.setStatus("Calculating split for record: " + id.toString());
+            context.write(new Split(tree, 0L, 0), new DoubleWritable(0.0));
             
         }
     }
 
     public class Reduce extends Reducer <Split, Iterable<DoubleWritable>, Split, DoubleWritable> {
+
+        protected void setup(Context context) {
+            
+        }
 
         public void reduce(Split split, Iterable<DoubleWritable> yValues, Context context)
                 throws IOException, InterruptedException {
