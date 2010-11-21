@@ -12,29 +12,23 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.common.CommandLineUtil;
-import org.apache.mahout.decision.distributed.DistributedBuilder;
 import org.apache.mahout.decision.distributed.NodeExpander;
-import org.apache.mahout.decision.split.equidepth.EquiDepthHistogramIgSplit;
 import org.apache.mahout.df.DFUtils;
-import org.apache.mahout.df.data.Data;
-import org.apache.mahout.df.data.DataLoader;
 import org.apache.mahout.df.data.Dataset;
 import org.apache.mahout.df.node.Node;
-import org.apache.mahout.df.split.IgSplit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Random;
 
 public class BuildDecisionTree extends Configured implements Tool {
 
@@ -133,10 +127,6 @@ public class BuildDecisionTree extends Configured implements Tool {
         }
 
         Dataset dataset = Dataset.load(getConf(), datasetPath);
-        long dataSize = dataset.nbInstances();
-
-        // use an equidepth histogram splitter
-        IgSplit edhSplit = new EquiDepthHistogramIgSplit(dataset);
 
         log.info("Building the tree...");
         long time = System.currentTimeMillis();
@@ -144,20 +134,36 @@ public class BuildDecisionTree extends Configured implements Tool {
         Configuration conf = new Configuration();
         conf.set("treePath", outputPath.toString());
 
-        Node initialRoot = new UnknownNode();
-        DFUtils.storeWritable(conf, outputPath, initialRoot);
+        Path modelPath = new Path(outputPath.getName(), "tree");
 
-        Job job = new Job(conf, "MRDT - Expanding Root Node");
+        /*
+            The initial (root) node must be expanded. Assuming that the root node will not be an in memory operation
+         */
+        Node root = new UnknownNode(false);
+        DFUtils.storeWritable(conf, modelPath, root);
+
+        Job job = new Job(conf, "PLANET - Expanding Root Node");
         job.setMapperClass(NodeExpander.Map.class);
         job.setReducerClass(NodeExpander.Reduce.class);
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputKeyClass(Split.class);
+        job.setOutputValueClass(DoubleWritable.class);
 
         FileInputFormat.addInputPath(job, datasetPath);
         FileOutputFormat.setOutputPath(job, outputPath);
 
         job.waitForCompletion(true);
+
+        /*
+            Initial node is expanded
+         */
+
+        boolean mrJobsRemaining = true;
+
+        while (mrJobsRemaining) {
+            
+        }
+
 
         time = System.currentTimeMillis() - time;
         log.info("Build Time: {}", DFUtils.elapsedTime(time));
@@ -165,6 +171,6 @@ public class BuildDecisionTree extends Configured implements Tool {
         // store the decision tree in the output path
         Path treePath = new Path(outputPath, "tree.seq");
         log.info("Storing the tree in: " + treePath);
-        // DFUtils.storeWritable(getConf(), treePath, tree); todo
+        DFUtils.storeWritable(getConf(), treePath, root);
     }
 }

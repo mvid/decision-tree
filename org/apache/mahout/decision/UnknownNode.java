@@ -13,8 +13,9 @@ public class UnknownNode extends Node {
 
     private int attr;
 
-    public UnknownNode() {
+    public UnknownNode(boolean inMem) {
         attr = -1;
+        this.inMem = inMem;
     }
     
     @Override
@@ -44,11 +45,13 @@ public class UnknownNode extends Node {
 
     @Override
     protected void writeNode(DataOutput out) throws IOException {
-        out.writeInt(-1);
+        out.writeInt(attr);
+        out.writeBoolean(inMem);
     }
 
     @Override
     public void readFields(DataInput in) throws IOException {
         attr = in.readInt();
+        inMem = in.readBoolean();
     }
 }
