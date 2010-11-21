@@ -142,26 +142,25 @@ public class BuildDecisionTree extends Configured implements Tool {
         Node root = new UnknownNode(false);
         DFUtils.storeWritable(conf, modelPath, root);
 
-        Job job = new Job(conf, "PLANET - Expanding Root Node");
-        job.setMapperClass(NodeExpander.Map.class);
-        job.setReducerClass(NodeExpander.Reduce.class);
-
-        job.setOutputKeyClass(Split.class);
-        job.setOutputValueClass(DoubleWritable.class);
-
-        FileInputFormat.addInputPath(job, datasetPath);
-        FileOutputFormat.setOutputPath(job, outputPath);
-
-        job.waitForCompletion(true);
-
-        /*
-            Initial node is expanded
-         */
+        
 
         boolean mrJobsRemaining = true;
+        int phaseCount = 0;
 
         while (mrJobsRemaining) {
+            Job job = new Job(conf, "PLANET - Node Expansion Phase #" + phaseCount);
+            job.setMapperClass(NodeExpander.Map.class);
+            job.setReducerClass(NodeExpander.Reduce.class);
+
+            job.setOutputKeyClass(Split.class);
+            job.setOutputValueClass(DoubleWritable.class);
+
+            FileInputFormat.addInputPath(job, datasetPath);
+            FileOutputFormat.setOutputPath(job, outputPath);
+
+            job.waitForCompletion(true);
             
+            phaseCount++;
         }
 
 
