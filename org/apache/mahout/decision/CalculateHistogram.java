@@ -15,12 +15,12 @@
  *  limitations under the License.
  *  under the License.
  */
-
 import java.io.IOException;
 import java.util.*;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -44,23 +44,20 @@ public class CalculateHistogram {
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             if (n == 0) {
+                n++;
                 StringTokenizer tokens = new StringTokenizer(value.toString(), ",");
                 int counter = 0;
+                tokens.nextToken();
                 while (tokens.hasMoreTokens()) {
                     String token = tokens.nextToken();
-                    if (tokens.hasMoreTokens()) {
-                        context.write(new LongWritable(-2), new Text("HI"));
-                        //context.write(new LongWritable(counter), new Text(token));
-                    }
+                    context.write(new LongWritable(counter), new Text(token));
                     counter++;
-                    n++;
                 }
             } else {
                 n++;
                 if (n == R) {
                     n = 0;
                 }
-                //context.write(new LongWritable(-1), new Text(""));
             }
         }
     }
@@ -69,33 +66,34 @@ public class CalculateHistogram {
 
         private final static int R = 10;
 
-        public void reduce(LongWritable key, Iterator<Text> values, Context context)
-                                            throws IOException, InterruptedException {
-            /*if (key.toString().equals("-1")) {
-                context.write(key, new HistogramBucket(key));
-            }
-            Text t = values.next();
+        @Override
+        public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            Iterator<Text> vals = values.iterator();
+            boolean cont = true;
+            Text t = vals.next();
             for (char c : t.toString().toCharArray()) {
-                if (!Character.isDigit(c) && c != '.') {
-                    context.write(key, new HistogramBucket(key));//if this isnt a numerical attribute we ignore it
+                if (!Character.isDigit(c) && c != '.' && c != '?') {
+                    cont = false;
                 }
+
             }
-            context.setStatus("Building Histogram");
-            HistogramBucket i = new HistogramBucket(key);
-            i.add(new DoubleWritable(Double.parseDouble(t.toString())));
-            context.write(new LongWritable(-1), new HistogramBucket(new LongWritable(-1)));
-            while (values.hasNext()) {
-                for (int j = 0; j < R; j++) {
-                    t = values.next();
+            if (cont) {
+                context.setStatus("Building Histogram");
+                HistogramBucket i = new HistogramBucket(key);
+                i.add(new DoubleWritable(Double.parseDouble(t.toString())));
+                while (vals.hasNext()) {
+                    for (int j = 0; j < R; j++) {
+                        if (vals.hasNext()) {
+                            t = vals.next();
+                        }
+                    }
+                    if (!i.contains(Double.parseDouble(t.toString()))) {
+                        context.setStatus("Writing a value to the Histogram");
+                        i.add(new DoubleWritable(Double.parseDouble(t.toString())));
+                    }
                 }
-                if (!i.contains(Double.parseDouble(t.toString()))) {
-                    context.setStatus("Writing a value to the Histogram");
-                    i.add(new DoubleWritable(Double.parseDouble(t.toString())));
-                }
+                context.write(key, i);
             }
-            context.write(new LongWritable(-1), i);
-*/
-            context.write(new LongWritable(55555555), new HistogramBucket(new LongWritable(55555555)));
         }
     }
 
@@ -112,10 +110,10 @@ public class CalculateHistogram {
         job.setMapperClass(HistogramMap.class);
         job.setReducerClass(HistogramReduce.class);
 
-        job.setOutputValueClass(HistogramBucket.class);
+        //job.setOutputValueClass(HistogramBucket.class);
 
-        job.setMapOutputKeyClass(LongWritable.class);
-        job.setMapOutputValueClass(Text.class);
+        //job.setMapOutputKeyClass(LongWritable.class);
+        //job.setMapOutputValueClass(Text.class);
 
         FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
         FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
