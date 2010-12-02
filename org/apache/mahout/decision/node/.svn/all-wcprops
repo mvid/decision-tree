@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/asf/!svn/ver/986405/mahout/trunk/core/src/main/java/org/apache/mahout/df/node
+END
+MockLeaf.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/repos/asf/!svn/ver/949271/mahout/trunk/core/src/main/java/org/apache/mahout/df/node/MockLeaf.java
+END
+CategoricalNode.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/repos/asf/!svn/ver/943565/mahout/trunk/core/src/main/java/org/apache/mahout/df/node/CategoricalNode.java
+END
+Node.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/repos/asf/!svn/ver/986405/mahout/trunk/core/src/main/java/org/apache/mahout/df/node/Node.java
+END
+NumericalNode.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/repos/asf/!svn/ver/949271/mahout/trunk/core/src/main/java/org/apache/mahout/df/node/NumericalNode.java
+END
+Leaf.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/repos/asf/!svn/ver/949271/mahout/trunk/core/src/main/java/org/apache/mahout/df/node/Leaf.java
+END
